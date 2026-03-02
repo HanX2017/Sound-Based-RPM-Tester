@@ -79,7 +79,7 @@ class SpectrumAnalyzer(QMainWindow):
                     self.data_buffer = np.roll(self.data_buffer, -len(ints))
                     self.data_buffer[-len(ints):] = ints
 
-                # 1. 更新時域波形
+                # 1. 更新時域波形 (顯示最近 1024 點)
                 self.curve1.setData(self.data_buffer[-1024:])
 
                 # 2. 計算 FFT
@@ -87,37 +87,68 @@ class SpectrumAnalyzer(QMainWindow):
                 yf = np.fft.rfft(self.data_buffer * window)
                 xf = np.fft.rfftfreq(FFT_SIZE, 1 / SAMPLE_RATE)
                 mag = np.abs(yf)
+                
+                # 預處理 mag 避免數值為 0 導致運算錯誤 (log 或 power)
+                # 確保數值夠大以便運算，但不影響視覺
+                mag_comp = np.maximum(mag, 1e-6)
 
-                # 3. 更新頻域圖
+                # 3. 執行「自適應幾何平均 HPS」演算法
+                # 使用 float64 以避免大數相乘溢位
+                hps = np.copy(mag_comp).astype(np.float64)
+                
+                # 建立計數陣列，紀錄每個頻率點目前乘了幾階諧波
+                counts = np.ones_like(mag_comp, dtype=int)
+                
+                num_harmonics = 4 # 目標最高階數
+                max_idx = len(mag_comp)
+                
+                for i in range(2, num_harmonics + 1):
+                    # 動態計算：在此階數下，哪些頻率點的諧波還在頻譜範圍內
+                    # L 是當前階數 i 下能容納的最大索引長度
+                    L = int(np.ceil(max_idx / i))
+                    
+                    # 取得下採樣頻譜：mag[0], mag[i], mag[2i]...
+                    downsampled = mag_comp[::i][:L]
+                    
+                    # 執行相乘：只針對「諧波還在範圍內」的低頻部分進行
+                    hps[:L] *= downsampled
+                    
+                    # 更新這些點的相乘次數計數
+                    counts[:L] += 1
+                
+                # 重要優化：幾何平均補償
+                # 由於低頻點乘了 4 次，高頻點可能只乘了 1 或 2 次
+                # 取 n 次方根 (n=counts) 讓不同頻段的數值具備可比性
+                hps = np.power(hps, 1.0 / counts)
+
+                # 4. 更新頻域圖 (繪圖維持顯示原始 mag)
                 self.curve2.setData(xf, mag)
 
-                # 4. 尋找最小主頻 (基頻) 並計算 RPM
-                mask = (xf > 10) 
-                search_mag = mag[mask]
-                search_xf = xf[mask]
+                # 5. 在自適應 HPS 頻譜中尋找主頻 (基頻 f0)
+                # 排除 10Hz 以下雜訊，上限設為 Nyquist 頻率
+                mask = (xf >= 10) & (xf <= (SAMPLE_RATE / 2))
+                hps_search = hps[mask]
+                xf_search = xf[mask]
                 
-                if len(search_mag) > 0:
-                    max_val = np.max(search_mag)
-                    peaks, _ = find_peaks(search_mag, height=max_val * 0.4, distance=10)
+                if len(hps_search) > 0:
+                    # 經過幾何平均補償後，最強點即為正確基頻
+                    best_idx = np.argmax(hps_search)
+                    f0 = xf_search[best_idx]
                     
-                    if len(peaks) > 0:
-                        # 選取最低頻率的峰值
-                        fundamental_idx = peaks[0] 
-                        f0 = search_xf[fundamental_idx] # 基頻 Hz
-                        mag0 = search_mag[fundamental_idx]
-                        
-                        # 計算 RPM
+                    # 取得原始振幅用於標記與門檻判斷
+                    orig_idx = (np.abs(xf - f0)).argmin()
+                    mag0 = mag[orig_idx]
+                    
+                    # 設定門檻：原始訊號強度需大於 2000 才顯示
+                    if mag0 > 2000:
                         rpm = f0 * 60
-
-                        # 更新顯示文字
-                        self.freq_label.setText(f"基頻: {f0:.2f} Hz")
-                        self.rpm_label.setText(f"RPM: {rpm:,.0f}") # 使用千分位格式
+                        self.freq_label.setText(f"基頻(自適應HPS): {f0:.2f} Hz")
+                        self.rpm_label.setText(f"RPM: {rpm:,.0f}")
                         self.peak_marker.setData([f0], [mag0])
                     else:
-                        self.freq_label.setText("未偵測到信號")
+                        self.freq_label.setText("未偵測到顯著信號")
                         self.rpm_label.setText("RPM: --")
                         self.peak_marker.setData([], [])
-
     def closeEvent(self, event):
         self.ser.close()
 
