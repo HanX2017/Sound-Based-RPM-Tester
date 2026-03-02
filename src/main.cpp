@@ -7,7 +7,7 @@
 #define PIN_I2S_DOUT 33
 
 // 取樣率 16kHz，配合 Python 端 16384 點 FFT 可達成 < 1Hz 解析度
-#define SAMPLE_RATE 16000  
+#define SAMPLE_RATE 8000
 #define BLOCK_SIZE 512     
 
 void setup() {

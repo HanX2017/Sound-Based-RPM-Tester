@@ -10,8 +10,8 @@ from scipy.signal import find_peaks
 # 參數設定
 COM_PORT = 'COM6'
 BAUD_RATE = 921600
-SAMPLE_RATE = 16000
-FFT_SIZE = 16384  # 解析度 = 16000 / 16384 = 0.976 Hz
+SAMPLE_RATE = 8000
+FFT_SIZE = 32768  # 解析度 = 16000 / 16384 = 0.976 Hz
 
 class SpectrumAnalyzer(QMainWindow):
     def __init__(self):
@@ -92,13 +92,12 @@ class SpectrumAnalyzer(QMainWindow):
                 self.curve2.setData(xf, mag)
 
                 # 4. 尋找最小主頻 (基頻) 並計算 RPM
-                mask = (xf > 10) # 排除直流與極低頻干擾
+                mask = (xf > 10) 
                 search_mag = mag[mask]
                 search_xf = xf[mask]
                 
                 if len(search_mag) > 0:
                     max_val = np.max(search_mag)
-                    # 尋找顯著峰值 (高度至少為最大值的 40%)
                     peaks, _ = find_peaks(search_mag, height=max_val * 0.4, distance=10)
                     
                     if len(peaks) > 0:
