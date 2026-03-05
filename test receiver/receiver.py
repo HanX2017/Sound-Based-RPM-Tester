@@ -8,8 +8,8 @@ from PyQt5.QtCore import QTimer
 # 參數設定 (請確保與 ESP32 一致)
 COM_PORT = 'COM6'
 BAUD_RATE = 921600
-SAMPLE_RATE = 8000  
-FFT_SIZE = 16384    
+SAMPLE_RATE = 8000
+FFT_SIZE = 16384
 
 class SpectrumAnalyzer(QMainWindow):
     def __init__(self):
@@ -49,7 +49,7 @@ class SpectrumAnalyzer(QMainWindow):
         self.layout.addWidget(self.pw2)
 
         # 3. HPS 處理後頻譜 (新功能)
-        self.pw3 = pg.PlotWidget(title="3. 自適應幾何平均 HPS 頻譜 (用於鎖定基頻)")
+        self.pw3 = pg.PlotWidget(title="3.  HPS 頻譜 (用於鎖定基頻)")
         self.pw3.setLabel('bottom', 'Frequency', units='Hz')
         self.pw3.setXRange(0, SAMPLE_RATE / 2)
         self.pw3.showGrid(x=True, y=True)
@@ -108,7 +108,7 @@ class SpectrumAnalyzer(QMainWindow):
                         L = int(np.ceil(max_idx / i))
                         downsampled = mag_white[::i][:L]
                         # 給予諧波適度的加權，避免高階諧波雜訊干擾
-                        weight = 1.0 / (i * 0.5) 
+                        weight = 1.0 / (i * 0.4) 
                         hps[:L] *= (downsampled ** weight)
                     
                     # 這裡不再執行 np.power(hps, 1/counts)，保留相乘後的巨大差異
@@ -128,7 +128,7 @@ class SpectrumAnalyzer(QMainWindow):
                         hps_max = np.max(hps_search)
                         # 尋找所有顯著峰值
                         from scipy.signal import find_peaks
-                        peaks, _ = find_peaks(hps_search, height=hps_max * 0.3, distance=20)
+                        peaks, _ = find_peaks(hps_search, height=hps_max * 0.2, distance=20)
                         
                         if len(peaks) > 0:
                             # 核心關鍵：選取頻率最低的那個顯著峰值
@@ -140,7 +140,7 @@ class SpectrumAnalyzer(QMainWindow):
                             
                             if mag0 > 1000: # 基本門檻
                                 rpm = f0 * 60
-                                self.freq_label.setText(f"基頻(BLDC優化): {f0:.2f} Hz")
+                                self.freq_label.setText(f"基頻: {f0:.2f} Hz")
                                 self.rpm_label.setText(f"RPM: {rpm:,.0f}")
                                 self.peak_marker.setData([f0], [mag0])
                             else:
