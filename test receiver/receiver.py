@@ -11,7 +11,7 @@ from scipy.signal import find_peaks
 COM_PORT = 'COM6'
 BAUD_RATE = 921600
 SAMPLE_RATE = 8000
-FFT_SIZE = 32768  # 解析度 = 16000 / 16384 = 0.976 Hz
+FFT_SIZE = 16384  # 解析度 = 16000 / 16384 = 0.976 Hz
 
 class SpectrumAnalyzer(QMainWindow):
     def __init__(self):
