@@ -128,7 +128,7 @@ class SpectrumAnalyzer(QMainWindow):
                         hps_max = np.max(hps_search)
                         # 尋找所有顯著峰值
                         from scipy.signal import find_peaks
-                        peaks, _ = find_peaks(hps_search, height=hps_max * 0.2, distance=20)
+                        peaks, _ = find_peaks(hps_search, height=hps_max * 0.25, distance=20)
                         
                         if len(peaks) > 0:
                             # 核心關鍵：選取頻率最低的那個顯著峰值
