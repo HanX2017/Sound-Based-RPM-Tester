@@ -1,4 +1,5 @@
 import sys
+import struct
 import serial
 import numpy as np
 import pyqtgraph as pg
@@ -128,7 +129,7 @@ class SpectrumAnalyzer(QMainWindow):
                         hps_max = np.max(hps_search)
                         # 尋找所有顯著峰值
                         from scipy.signal import find_peaks
-                        peaks, _ = find_peaks(hps_search, height=hps_max * 0.25, distance=20)
+                        peaks, _ = find_peaks(hps_search, height=hps_max * 0.05, distance=20)
                         
                         if len(peaks) > 0:
                             # 核心關鍵：選取頻率最低的那個顯著峰值
@@ -140,6 +141,12 @@ class SpectrumAnalyzer(QMainWindow):
                             
                             if mag0 > 1000: # 基本門檻
                                 rpm = f0 * 60
+                                # 傳回 ESP32
+                                try:
+                                    packet = b'\xAA\x55' + struct.pack('ff', f0, rpm)
+                                    self.ser.write(packet)
+                                except:
+                                    pass
                                 self.freq_label.setText(f"基頻: {f0:.2f} Hz")
                                 self.rpm_label.setText(f"RPM: {rpm:,.0f}")
                                 self.peak_marker.setData([f0], [mag0])
