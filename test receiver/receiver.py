@@ -100,18 +100,18 @@ class SpectrumAnalyzer(QMainWindow):
 
                     # --- 優化 B: 加權 HPS (不再使用幾何平均) ---
                     # 直接相乘會讓倍頻關係強大的點爆發式成長
-                    hps = np.copy(mag_white).astype(np.float64)
-                    num_harmonics = 4 
-                    max_idx = len(mag_white)
-                    
-                    for i in range(2, num_harmonics + 1):
-                        L = int(np.ceil(max_idx / i))
-                        downsampled = mag_white[::i][:L]
-                        # 給予諧波適度的加權，避免高階諧波雜訊干擾
-                        weight = 1.0 / (i * 0.4) 
-                        hps[:L] *= (downsampled ** weight)
-                    
-                    # 這裡不再執行 np.power(hps, 1/counts)，保留相乘後的巨大差異
+                        hps = np.copy(mag_white).astype(np.float64)
+                        num_harmonics = 4 
+                        max_idx = len(mag_white)
+                        
+                        for i in range(2, num_harmonics + 1):
+                            L = int(np.ceil(max_idx / i))
+                            downsampled = mag_white[::i][:L]
+                            # 給予諧波適度的加權，避免高階諧波雜訊干擾
+                            weight = 1.0 / (i * 0.4) 
+                            hps[:L] *= (downsampled ** weight)
+                        
+                        # 這裡不再執行 np.power(hps, 1/counts)，保留相乘後的巨大差異
 
                     # 2. 更新圖表 (圖 2 畫原始，圖 3 畫白化後的 HPS)
                     self.curve2.setData(xf, mag)
