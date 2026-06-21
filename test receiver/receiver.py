@@ -10,6 +10,7 @@ from PyQt5.QtCore import QTimer
 COM_PORT = 'COM6'
 BAUD_RATE = 921600
 SAMPLE_RATE = 8000
+
 FFT_SIZE = 16384
 
 class SpectrumAnalyzer(QMainWindow):
